@@ -6,41 +6,41 @@ from io import BytesIO
 
 blocks: list['Block'] = []
 
-def get_more_blocks(excel_file) -> dict[int, list[int]]:
-    df = pd.read_excel(excel_file)
-    df = df.iloc[:-1,:] # last row is total
-    df['№ комнаты'] = df['№ комнаты'].astype(int) # convert to int
-    df = df.groupby('Здание').agg({'№ комнаты': list})
-    new_blocks = {}
-    for block in df.index:
-        new_blocks[int(block[5:])] = df.loc[block, '№ комнаты']
-    
-    return new_blocks
-
-# def get_more_blocks(excel_file) -> dict[int, list[tuple[int, int]]]:
+# def get_more_blocks(excel_file) -> dict[int, list[int]]:
 #     df = pd.read_excel(excel_file)
 #     df = df.iloc[:-1,:] # last row is total
-    
 #     df['№ комнаты'] = df['№ комнаты'].astype(int) # convert to int
-#     df['Общ. кол-во мест'] = df['Общ. кол-во мест'].astype(int) # convert to int
-    
-#     df = df.groupby('Здание').agg({'№ комнаты': list, 'Общ. кол-во мест': list})
-
-#     # combine two columns into one using a size two tuple
-#     df['room_cap'] = df.apply(lambda row: list(zip(row['№ комнаты'], row['Общ. кол-во мест'])), axis=1)
-
+#     df = df.groupby('Здание').agg({'№ комнаты': list})
 #     new_blocks = {}
 #     for block in df.index:
-#         new_blocks[int(block[5:])] = df.loc[block, 'room_cap']
+#         new_blocks[int(block[5:])] = df.loc[block, '№ комнаты']
     
 #     return new_blocks
+
+def get_more_blocks(excel_file) -> dict[int, list[tuple[int, int]]]:
+    df = pd.read_excel(excel_file)
+    df = df.iloc[:-1,:] # last row is total
+    
+    df['№ комнаты'] = df['№ комнаты'].astype(int) # convert to int
+    df['Общ. кол-во мест'] = df['Общ. кол-во мест'].astype(int) # convert to int
+    
+    df = df.groupby('Здание').agg({'№ комнаты': list, 'Общ. кол-во мест': list})
+
+    # combine two columns into one using a size two tuple
+    df['room_cap'] = df.apply(lambda row: list(zip(row['№ комнаты'], row['Общ. кол-во мест'])), axis=1)
+
+    new_blocks = {}
+    for block in df.index:
+        new_blocks[int(block[5:])] = df.loc[block, 'room_cap']
+    
+    return new_blocks
 
 def build_dormitory():
     if not st.session_state.build:
         blocks_ref = {}
         for block in st.session_state.blocks:
             # ПОМЕНЯЯЯЯЯЯЯЯЯЯЯТЬ
-            blocks_ref[block.blockID] = Dormitory.Block(block.blockID, block.rooms, block.places)
+            blocks_ref[block.blockID] = Dormitory.Block(block.blockID, block.rooms)
         st.session_state.nu = Dormitory(blocks_ref, st.session_state.excluded_data)
         print(st.session_state.nu)
     st.session_state.build = True
@@ -48,16 +48,9 @@ def build_dormitory():
 
 # Define the Block class
 class Block:
-    # def __init__(self, blockID : int, active : bool, floors, rooms : list[int], places: int):
-    #     self.blockID = blockID
-    #     self.active = active
-    #     self.floors = floors
-    #     self.rooms = rooms
-    #     self.places = places
-    def __init__(self, blockID : int, rooms : list[int], places: int):
+    def __init__(self, blockID : int, rooms_caps : list[tuple[int, int]]):
         self.blockID = blockID
-        self.rooms = rooms
-        self.places = places
+        self.rooms = rooms_caps
         self.mutable = True
 
 
@@ -80,8 +73,8 @@ def init_session_state():
         st.session_state.blocks = []
     if 'page' not in st.session_state:
         st.session_state.page = "Dormitory Generator" 
-    if 'my_slider_value' not in st.session_state:
-        st.session_state.my_slider_value = (22, 27)
+    # if 'my_slider_value' not in st.session_state:
+    #     st.session_state.my_slider_value = (22, 27)
     if "addBlock_button_clicked" not in st.session_state:
         st.session_state.addBlock_button_clicked = False
     if "addBlocks_button_clicked" not in st.session_state:
@@ -143,34 +136,25 @@ def reset_block(block):
     
 
 # Generate dormitory based on block range
-def generate_dormitory(block_range):
-    # Initialize blocks within the given range
-    for blockID in range(block_range[0], block_range[1] + 1):
-        block = Block(blockID, True, (2, 12), 28, 2)
-        blocks.append(block)
-        if block.blockID not in st.session_state:
-            st.session_state[block.blockID] = block
-    return blocks
-
-def generate_dormitory_fixed(block_range : tuple[int, int], floors_range : tuple[int, int], rooms_range : int):
+def generate_dormitory_fixed(block_range : tuple[int, int], floors_range : tuple[int, int], rooms_range : int, room_capacity : int):
     for blockID in range(block_range[0], block_range[1] + 1):
         # Create list of rooms in the block with consideration of the number of floors and rooms per floor. Floor indicates first part of the room number, room index at the floor indicates second part of the room number
-        rooms: list[int] = generate_rooms(floors_range, (1, rooms_range))
-        if(blockID != 22):
-            block = Block(blockID, rooms, 2)
-        else:
-            block = Block(blockID, rooms, 3)
+        rooms: list[tuple[int, int]] = generate_rooms(floors_range, (1, rooms_range), room_capacity)
+        
+        block = Block(blockID, rooms)
         blocks.append(block)
         if block.blockID not in st.session_state:
             st.session_state[block.blockID] = block
     return blocks
 
 # Generate rooms based on floor range and room range
-def generate_rooms(floor_range: tuple[int, int], room_range: tuple[int, int]):
-    rooms: list[int] = []
+def generate_rooms(floor_range: tuple[int, int], room_range: tuple[int, int], capacity: int = 2):
+    # rooms is a list of tuples, where each tuple represents a room number and its capacity
+    rooms: list[tuple[int, int]] = [] 
     for floor in range(floor_range[0], floor_range[1] + 1):
         for room in range(room_range[0], room_range[1] + 1):
-            rooms.append(floor * 100 + room)
+            roomID = floor * 100 + room
+            rooms.append((roomID, capacity))
     return rooms
 
 # Page 1: Dormitory Generator
@@ -192,11 +176,12 @@ def dormitory_generator_page():
             st.subheader("Floor range")
         with col2:
             block_range_min = st.number_input("Min", min_value=19, max_value=28, value=22, step=1, key="block_range_min")
-            floor_range_min = st.number_input("Min", min_value=1, max_value=12, value=1, step=1, key="floor_range_min")
+            floor_range_min = st.number_input("Min", min_value=2, max_value=12, value=2, step=1, key="floor_range_min")
         with col3:
             block_range_max = st.number_input("Max", min_value=19, max_value=28, value=28, step=1, key="block_range_max")
-            floor_range_max = st.number_input("Max", min_value=1, max_value=12, value=12, step=1, key="floor_range_max")
+            floor_range_max = st.number_input("Max", min_value=2, max_value=12, value=12, step=1, key="floor_range_max")
         rooms_per_floor = st.number_input("Rooms per floor", min_value=1, max_value=28, value=28, step=1, key="rooms_per_floor")
+        rooms_capacity = st.number_input("Rooms capacity", min_value=1, max_value=4, value=2, step=1, key="rooms_capacity")
             
     # Add a button to generate the dormitory
     generate = st.button("Generate", help="Generate the dormitory configuration", on_click=callbackGenerate)
@@ -204,7 +189,7 @@ def dormitory_generator_page():
     blocks = []
     if generate:
         #Deprecated# blocks = generate_dormitory(st.session_state.my_slider_value)
-        blocks = generate_dormitory_fixed(block_range=(block_range_min, block_range_max), floors_range=(floor_range_min, floor_range_max), rooms_range=rooms_per_floor)
+        blocks = generate_dormitory_fixed(block_range=(block_range_min, block_range_max), floors_range=(floor_range_min, floor_range_max), rooms_range=rooms_per_floor, room_capacity=rooms_capacity)
         st.session_state.blocks = blocks
     blocks = st.session_state.blocks
     blocks.sort(key=lambda x: x.blockID)
@@ -229,8 +214,8 @@ def dormitory_generator_page():
             if block.mutable:
                 floor_range : tuple[int, int] = st.slider("Floors", min_value=2, max_value=12, value = (floor_range_min, floor_range_max), key="floor"+str(block.blockID))
                 room_range: int = st.number_input("Rooms per Floor", min_value=1, max_value=28, value = rooms_per_floor, key="room"+str(block.blockID))
-                block.rooms = generate_rooms(floor_range, (1, room_range))
-                block.places = st.number_input("Students per Room", min_value=1, max_value=4, value=st.session_state[block.blockID].places, key="place"+str(block.blockID))
+                room_capacity = st.number_input("Students per Room", min_value=1, max_value=4, value= rooms_capacity, key="place"+str(block.blockID))
+                block.rooms = generate_rooms(floor_range, (1, room_range), room_capacity)
             else:
                 st.write("Rooms: ", block.rooms)
                 # change expander title text to include "(custom)" if the block is not mutable
@@ -259,9 +244,9 @@ def dormitory_generator_page():
                 addBlocks = st.button("Add Custom Blocks", help="Add custom blocks to the dormitory", on_click=callbackAddBlocks)
                 if addBlocks and st.session_state.custom_blocks is not None:
                     blocks_dic = get_more_blocks(st.session_state.custom_blocks)
-                    # traverse the dictionary (key = blockID, value = rooms) and create new blocks and add them to the session state
-                    for blockID, rooms in blocks_dic.items():
-                        newblock = Block(blockID, rooms, 4)
+                    # traverse the dictionary (key = blockID, value = rooms_caps) and create new blocks and add them to the session state
+                    for blockID, rooms_caps in blocks_dic.items():
+                        newblock = Block(blockID, rooms_caps)
                         newblock.mutable = False
                         st.session_state[newblock.blockID] = newblock
                         # traverse the blocks comparing blockIDs and at match with newblock.blockID replace the old block with the new one
@@ -285,7 +270,7 @@ def dormitory_generator_page():
                             addBtn_container.error("Block already exists")
                             invaid = True
                     if not invaid:
-                        newblock = Block(st.session_state.newblockID, generate_rooms((2, 12), (1, 28)), 2)
+                        newblock = Block(st.session_state.newblockID, generate_rooms((2, 12), (1, 28), 2))
                         st.session_state[newblock.blockID] = newblock
                         st.session_state.blocks.append(newblock)
                         st.experimental_rerun()
@@ -371,8 +356,7 @@ def populate_details():
         if st.session_state.get_rooms_clicked:
             st.dataframe(st.session_state.filtered_rooms_df)
             st.info(f"""Number of rooms selected: {len(st.session_state.filtered_rooms_df)}
-            Number of beds selected: {st.session_state.filtered_rooms_df.Capacity.sum()}
-            Number of free beds: {st.session_state.filtered_rooms_df.Capacity.sum() - st.session_state.filtered_rooms_df.Students.apply(len).sum()}
+            Number of free beds selected: {st.session_state.filtered_rooms_df.Capacity.sum()}
             """)
 
     with st.form(key="students"): 
