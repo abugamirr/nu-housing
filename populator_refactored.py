@@ -48,7 +48,6 @@ class Populator:
 		# -------------------------------------
 		df.Id = df.Id.astype(int)
 
-		
 		for _, row in df.iterrows():
 			id = row['Id']
 			gender = row['Gender']
@@ -195,8 +194,8 @@ class Populator:
 
 				list_of_rooms.append(room)
 		
-		data = [(room.block_number, room.number, room.gender, str(room.students)) for room in list_of_rooms]
-		df = pd.DataFrame(data, columns=['Block', 'Room', 'Gender', 'Students'])
+		data = [(room.block_number, room.number, room.gender, room.capacity, str(room.students)) for room in list_of_rooms]
+		df = pd.DataFrame(data, columns=['Block', 'Room', 'Gender', 'Capacity', 'Students'])
 
 		return df, list_of_rooms
 

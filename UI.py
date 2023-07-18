@@ -370,6 +370,11 @@ def populate_details():
         st.form_submit_button("Get Rooms", on_click=get_rooms) 
         if st.session_state.get_rooms_clicked:
             st.dataframe(st.session_state.filtered_rooms_df)
+            st.info(f"""Number of rooms selected: {len(st.session_state.filtered_rooms_df)}
+            Number of beds selected: {st.session_state.filtered_rooms_df.Capacity.sum()}
+            Number of free beds: {st.session_state.filtered_rooms_df.Capacity.sum() - st.session_state.filtered_rooms_df.Students.apply(len).sum()}
+            """)
+
     with st.form(key="students"): 
         col1, col2, col3, col4= st.columns(4) 
         col1.multiselect("Gender", options=["Male", "Female"], default=["Male", "Female"], key='gender_student')
@@ -379,6 +384,7 @@ def populate_details():
         st.form_submit_button("Get Students", on_click=get_students)
         if st.session_state.get_students_clicked:
             st.dataframe(st.session_state.filtered_students_df)
+            st.info(f"""Number of students selected: {len(st.session_state.filtered_students_df)}""")
     
     st.button("Populate", help = "Populate", on_click = populate, key = 'populate')
     if st.session_state.populate_clicked:
