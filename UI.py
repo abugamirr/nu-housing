@@ -364,7 +364,7 @@ def populate_details():
         col1.multiselect("Gender", options=["Male", "Female"], default=["Male", "Female"], key='gender_student')
         col2.multiselect("Degree", options=st.session_state.populator.df_students_to_accommodate["Degree"].unique(), default=st.session_state.populator.df_students_to_accommodate["Degree"].unique(), key = 'degree_student') 
         col3.multiselect("Year", options=st.session_state.populator.df_students_to_accommodate["Year"].unique(), default=st.session_state.populator.df_students_to_accommodate["Year"].unique(), key = 'year_student')
-        col4.multiselect("Roomates", options=[0,1,2,3], default=[1,2], key = "roomates_student")
+        col4.multiselect("Roomates", options=[0,1,2], default=[0,1,2], key = "roomates_student")
         col5.text_input("Student ID", placeholder="Comma-Sep, Example: 202085777", key = '_student')
         st.form_submit_button("Get Students", on_click=get_students)
         if st.session_state.get_students_clicked:

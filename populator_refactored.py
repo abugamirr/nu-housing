@@ -201,7 +201,7 @@ class Populator:
 
 	def refresh_df_students_to_accommodate(self):
 		self.student_ids_to_accommodate = [student.id for student in self.students.values() if student.room is None]
-		data = [(student.id, student.gender, student.degree, student.year, str(student.intended_roommate_ids)) for student in [self.students[id] for id in self.student_ids_to_accommodate]]
+		data = [(student.id, student.gender, student.degree, student.year, student.intended_roommate_ids) for student in [self.students[id] for id in self.student_ids_to_accommodate]]
 		columns = ['Id', 'Gender', 'Degree', 'Year', 'Intended Roommates']
 		
 		self.df_students_to_accommodate = pd.DataFrame(data, columns = columns)
