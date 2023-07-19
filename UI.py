@@ -360,11 +360,12 @@ def populate_details():
             """)
 
     with st.form(key="students"): 
-        col1, col2, col3, col4= st.columns(4) 
+        col1, col2, col3, col4, col5= st.columns(5) 
         col1.multiselect("Gender", options=["Male", "Female"], default=["Male", "Female"], key='gender_student')
         col2.multiselect("Degree", options=st.session_state.populator.df_students_to_accommodate["Degree"].unique(), default=st.session_state.populator.df_students_to_accommodate["Degree"].unique(), key = 'degree_student') 
         col3.multiselect("Year", options=st.session_state.populator.df_students_to_accommodate["Year"].unique(), default=st.session_state.populator.df_students_to_accommodate["Year"].unique(), key = 'year_student')
-        col4.text_input("Student ID", placeholder="Comma-Sep, Example: 202085777", key = '_student')
+        col4.multiselect("Roomates", options=[0,1,2,3], default=[1,2], key = "roomates_student")
+        col5.text_input("Student ID", placeholder="Comma-Sep, Example: 202085777", key = '_student')
         st.form_submit_button("Get Students", on_click=get_students)
         if st.session_state.get_students_clicked:
             st.dataframe(st.session_state.filtered_students_df)
@@ -420,12 +421,13 @@ def get_students():
     gender = st.session_state.gender_student
     degree = st.session_state.degree_student
     year = st.session_state.year_student
+    roomates_num = st.session_state.roomates_student
     student_ids = st.session_state._student
     if student_ids == "":
         student_ids = None
     else:
         student_ids = [int(id) for id in student_ids.split(",")]
-    st.session_state.filtered_students_df, st.session_state.filtered_students_list = st.session_state.populator.filter_students(gender, degree, year, student_ids)
+    st.session_state.filtered_students_df, st.session_state.filtered_students_list = st.session_state.populator.filter_students(gender, degree, year, roomates_num ,student_ids)
 
 
 def pair_roomates():
@@ -441,7 +443,6 @@ def settle_roomates():
 def file_processing():
     if not st.session_state.file_processed:
         st.session_state.populator = Populator(st.session_state.nu)
-        # TODO: add condition to skip
         if st.session_state.room_data is not None:
             st.session_state.populator.update_dorm(st.session_state.room_data)
         # --------------------
