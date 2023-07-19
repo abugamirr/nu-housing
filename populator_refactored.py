@@ -206,11 +206,11 @@ class Populator:
 		
 		self.df_students_to_accommodate = pd.DataFrame(data, columns = columns)
 
-	def filter_students(self, gender: list[str], degree: list[str], year: list[str], ids: list[int] | None = None) -> tuple[pd.DataFrame, list[int]]:
+	def filter_students(self, gender: list[str], degree: list[str], year: list[str], num_of_roomates: list[int], ids: list[int] | None = None) -> tuple[pd.DataFrame, list[int]]:
 		self.refresh_df_students_to_accommodate()
 		df = self.df_students_to_accommodate
 
-		df = df[(df['Gender'].isin(gender)) & (df['Degree'].isin(degree)) & (df['Year'].isin(year))]
+		df = df[(df['Gender'].isin(gender)) & (df['Degree'].isin(degree)) & (df['Year'].isin(year)) & df['Students'].apply(len).isin(num_of_roomates)]
 		
 		if ids is not None:
 			df = df[df['Id'].isin(ids)]
