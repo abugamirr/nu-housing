@@ -43,6 +43,8 @@ class Populator:
 		df.columns = ['Id', 'Gender', 'Degree', 'Year', 'Roommate1', 'Roommate2']
 		if df[['Id', 'Gender', 'Degree', 'Year']].isnull().sum().sum() > 0:
 			raise ValueError(f'Following rows contain null values {df[df[["Id", "Gender", "Degree", "Year"]].isnull().any(axis=1)].index.tolist()}')
+		if df.duplicated(subset=['Id']).sum() > 0:
+			raise ValueError(f'Following rows contain duplicate Ids {df[df.duplicated(subset=["Id"])].index.tolist()}')
 		# -------------------------------------
 		# More Data Transformations (if needed)
 		# -------------------------------------
