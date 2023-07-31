@@ -297,9 +297,8 @@ class Populator:
 				for i in range(len(room.students)):
 					student = room.students[i]
 					
-					# UNCOMMENT THIS IF YOU WANT TO UPLOAD only students who were not in the dorm before
-					# if student.id not in accommodated_student_ids:
-					# 	continue
+					if student.id not in accommodated_student_ids:
+						continue
 					
 					upload_df.iloc[index, :] = pd.Series([student.id] + [np.nan] * 3 + [f'Блок {block_num}'] * 2 + [room.number] + [i + 1] + [np.nan] * 9)
 					index += 1
